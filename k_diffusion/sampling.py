@@ -509,7 +509,6 @@ def sample_dpm_adaptive(model, x, sigma_min, sigma_max, extra_args=None, callbac
 def sample_dpmpp_2s(model, x, sigmas, extra_args=None, callback=None, disable=None, s_churn=0., s_tmin=0., s_tmax=float('inf'), s_noise=1.):
     """Ancestral sampling with DPM-Solver++(2S) second-order steps."""
     extra_args = {} if extra_args is None else extra_args
-    # noise_sampler = default_noise_sampler(x) if noise_sampler is None else noise_sampler
     s_in = x.new_ones([x.shape[0]])
     sigma_fn = lambda t: t.neg().exp()
     t_fn = lambda sigma: sigma.log().neg()
@@ -526,7 +525,7 @@ def sample_dpmpp_2s(model, x, sigmas, extra_args=None, callback=None, disable=No
         if sigmas[i + 1] == 0:
             # Euler method
             d = to_d(x, sigmas[i], denoised)
-            dt = sigmas[i + 1] - sigmas[i]
+            dt = sigmas[i + 1] - sigma_hat
             x = x + d * dt
         else:
             # DPM-Solver++(2S)
