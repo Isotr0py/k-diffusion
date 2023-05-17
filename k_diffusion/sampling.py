@@ -505,41 +505,41 @@ def sample_dpm_adaptive(model, x, sigma_min, sigma_max, extra_args=None, callbac
     return x
 
 
-# @torch.no_grad()
-# def sample_dpmpp_2s(model, x, sigmas, extra_args=None, callback=None, disable=None, s_churn=0., s_tmin=0., s_tmax=float('inf'), s_noise=1.):
-#     """DPM-Solver++(2S) second-order steps."""
-#     extra_args = {} if extra_args is None else extra_args
-#     s_in = x.new_ones([x.shape[0]])
-#     sigma_fn = lambda t: t.neg().exp()
-#     t_fn = lambda sigma: sigma.log().neg()
+@torch.no_grad()
+def sample_dpmpp_2s_ref2(model, x, sigmas, extra_args=None, callback=None, disable=None, s_churn=0., s_tmin=0., s_tmax=float('inf'), s_noise=1.):
+    """DPM-Solver++(2S) second-order steps."""
+    extra_args = {} if extra_args is None else extra_args
+    s_in = x.new_ones([x.shape[0]])
+    sigma_fn = lambda t: t.neg().exp()
+    t_fn = lambda sigma: sigma.log().neg()
 
-#     for i in trange(len(sigmas) - 1, disable=disable):
-#         gamma = min(s_churn / (len(sigmas) - 1), 2 ** 0.5 - 1) if s_tmin <= sigmas[i] <= s_tmax else 0.
-#         eps = torch.randn_like(x) * s_noise
-#         sigma_hat = sigmas[i] * (gamma + 1)
-#         if gamma > 0:
-#             x = x + eps * (sigma_hat ** 2 - sigmas[i] ** 2) ** 0.5
-#         denoised = model(x, sigma_hat * s_in, **extra_args)
-#         if callback is not None:
-#             callback({'x': x, 'i': i, 'sigma': sigmas[i], 'sigma_hat': sigmas[i], 'denoised': denoised})
-#         if sigmas[i + 1] == 0:
-#             # Euler method
-#             d = to_d(x, sigmas[i], denoised)
-#             dt = sigmas[i + 1] - sigma_hat
-#             x = x + d * dt
-#         else:
-#             # DPM-Solver++(2S)
-#             t, t_next = t_fn(sigmas[i]), t_fn(sigmas[i + 1])
-#             r = 1 / 2
-#             h = t_next - t
-#             s = t + r * h
-#             x_2 = (sigma_fn(s) / sigma_fn(t)) * x - (-h * r).expm1() * denoised
-#             denoised_2 = model(x_2, sigma_fn(s) * s_in, **extra_args)
-#             x = (sigma_fn(t_next) / sigma_fn(t)) * x - (-h).expm1() * denoised_2
-#         # Noise addition
-#         # if sigmas[i + 1] > 0:
-#         #     x = x + noise_sampler(sigmas[i], sigmas[i + 1]) * s_noise * sigma_up
-#     return x
+    for i in trange(len(sigmas) - 1, disable=disable):
+        gamma = min(s_churn / (len(sigmas) - 1), 2 ** 0.5 - 1) if s_tmin <= sigmas[i] <= s_tmax else 0.
+        eps = torch.randn_like(x) * s_noise
+        sigma_hat = sigmas[i] * (gamma + 1)
+        if gamma > 0:
+            x = x + eps * (sigma_hat ** 2 - sigmas[i] ** 2) ** 0.5
+        denoised = model(x, sigma_hat * s_in, **extra_args)
+        if callback is not None:
+            callback({'x': x, 'i': i, 'sigma': sigmas[i], 'sigma_hat': sigmas[i], 'denoised': denoised})
+        if sigmas[i + 1] == 0:
+            # Euler method
+            d = to_d(x, sigmas[i], denoised)
+            dt = sigmas[i + 1] - sigma_hat
+            x = x + d * dt
+        else:
+            # DPM-Solver++(2S)
+            t, t_next = t_fn(sigmas[i]), t_fn(sigmas[i + 1])
+            r = 1 / 2
+            h = t_next - t
+            s = t + r * h
+            x_2 = (sigma_fn(s) / sigma_fn(t)) * x - (-h * r).expm1() * denoised
+            denoised_2 = model(x_2, sigma_fn(s) * s_in, **extra_args)
+            x = (sigma_fn(t_next) / sigma_fn(t)) * x - (-h).expm1() * denoised_2
+        # Noise addition
+        # if sigmas[i + 1] > 0:
+        #     x = x + noise_sampler(sigmas[i], sigmas[i + 1]) * s_noise * sigma_up
+    return x
 
 
 @torch.no_grad()
@@ -644,7 +644,7 @@ def sample_dpmpp_2m(model, x, sigmas, extra_args=None, callback=None, disable=No
     return x
 
 @torch.no_grad()
-def sample_dpmpp_2s(model, x, sigmas, extra_args=None, callback=None, disable=None):
+def sample_dpmpp_2s_ref2m(model, x, sigmas, extra_args=None, callback=None, disable=None):
     """DPM-Solver++(2M)."""
     extra_args = {} if extra_args is None else extra_args
     s_in = x.new_ones([x.shape[0]])
