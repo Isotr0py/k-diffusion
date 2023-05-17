@@ -552,22 +552,14 @@ def sample_dpmpp_2s(model, x, sigmas, extra_args=None, callback=None, disable=No
 
     for i in trange(len(sigmas) - 1, disable=disable):
         denoised = model(x, sigmas[i] * s_in, **extra_args)
-        if callback is not None:
-            callback({'x': x, 'i': i, 'sigma': sigmas[i], 'sigma_hat': sigmas[i], 'denoised': denoised})
-        if sigmas[i + 1] == 0:
-            # Euler method
-            d = to_d(x, sigmas[i], denoised)
-            dt = sigmas[i + 1] - sigmas[i]
-            x = x + d * dt
-        else:
-            # DPM-Solver++(2S)
-            t, t_next = t_fn(sigmas[i]), t_fn(sigmas[i + 1])
-            r = 1 / 2
-            h = t_next - t
-            s = t + r * h
-            x_2 = (sigma_fn(s) / sigma_fn(t)) * x - (-h * r).expm1() * denoised
-            denoised_2 = model(x_2, sigma_fn(s) * s_in, **extra_args)
-            x = (sigma_fn(t_next) / sigma_fn(t)) * x - (-h).expm1() * denoised_2
+        # DPM-Solver++(2S)
+        t, t_next = t_fn(sigmas[i]), t_fn(sigmas[i + 1])
+        r = 1 / 2
+        h = t_next - t
+        s = t + r * h
+        x_2 = (sigma_fn(s) / sigma_fn(t)) * x - (-h * r).expm1() * denoised
+        denoised_2 = model(x_2, sigma_fn(s) * s_in, **extra_args)
+        x = (sigma_fn(t_next) / sigma_fn(t)) * x - (-h).expm1() * denoised_2
         # Noise addition
         # if sigmas[i + 1] > 0:
         #     x = x + noise_sampler(sigmas[i], sigmas[i + 1]) * s_noise * sigma_up
