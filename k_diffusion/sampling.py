@@ -516,17 +516,16 @@ def sample_dpmpp_2s(model, x, sigmas, extra_args=None, callback=None, disable=No
 
     for i in trange(len(sigmas) - 1, disable=disable):
         denoised = model(x, sigmas[i] * s_in, **extra_args)
-        sigma_down, sigma_up = get_ancestral_step(sigmas[i], sigmas[i + 1], eta=eta)
         if callback is not None:
             callback({'x': x, 'i': i, 'sigma': sigmas[i], 'sigma_hat': sigmas[i], 'denoised': denoised})
-        if sigma_down == 0:
+        if sigmas[i + 1] == 0:
             # Euler method
             d = to_d(x, sigmas[i], denoised)
-            dt = sigma_down - sigmas[i]
+            dt = sigmas[i + 1] - sigmas[i]
             x = x + d * dt
         else:
             # DPM-Solver++(2S)
-            t, t_next = t_fn(sigmas[i]), t_fn(sigma_down)
+            t, t_next = t_fn(sigmas[i]), t_fn(sigmas[i + 1])
             r = 1 / 2
             h = t_next - t
             s = t + r * h
