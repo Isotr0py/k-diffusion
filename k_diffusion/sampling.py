@@ -534,8 +534,8 @@ def sample_dpmpp_2s(model, x, sigmas, extra_args=None, callback=None, disable=No
             denoised_2 = model(x_2, sigma_fn(s) * s_in, **extra_args)
             x = (sigma_fn(t_next) / sigma_fn(t)) * x - (-h).expm1() * denoised_2
         # Noise addition
-        if sigmas[i + 1] > 0:
-            x = x + noise_sampler(sigmas[i], sigmas[i + 1]) * s_noise * sigma_up
+        # if sigmas[i + 1] > 0:
+        #     x = x + noise_sampler(sigmas[i], sigmas[i + 1]) * s_noise * sigma_up
     return x
 
 
