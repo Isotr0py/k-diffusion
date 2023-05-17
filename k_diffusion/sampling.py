@@ -650,6 +650,7 @@ def sample_dpmpp_2s(model, x, sigmas, extra_args=None, callback=None, disable=No
     s_in = x.new_ones([x.shape[0]])
     sigma_fn = lambda t: t.neg().exp()
     t_fn = lambda sigma: sigma.log().neg()
+    old_denoised = None
 
     for i in trange(len(sigmas) - 1, disable=disable):
         denoised = model(x, sigmas[i] * s_in, **extra_args)
@@ -668,8 +669,12 @@ def sample_dpmpp_2s(model, x, sigmas, extra_args=None, callback=None, disable=No
         t, t_next = t_fn(sigmas[i]), t_fn(sigmas[i + 1])
         r = 1 / 2
         h = t_next - t
-        s = t + r * h
-        x_2 = (sigma_fn(s) / sigma_fn(t)) * x - (-h * r).expm1() * denoised
-        denoised_2 = model(x_2, sigma_fn(s) * s_in, **extra_args)
-        x = (sigma_fn(t_next) / sigma_fn(t)) * x - (-h).expm1() * denoised_2
+        if old_denoised is None or sigmas[i + 1] == 0:
+            x = (sigma_fn(t_next) / sigma_fn(t)) * x - (-h).expm1() * denoised
+        else:
+            s = t + r * h
+            x_2 = (sigma_fn(s) / sigma_fn(t)) * x - (-h * r).expm1() * denoised
+            denoised_2 = model(x_2, sigma_fn(s) * s_in, **extra_args)
+            x = (sigma_fn(t_next) / sigma_fn(t)) * x - (-h).expm1() * denoised_2
+        old_denoised = denoised
     return x
